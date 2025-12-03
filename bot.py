@@ -1,46 +1,48 @@
 import os
+from dotenv import load_dotenv
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Ambil token dari environment variable
-BOT_TOKEN = os.getenv('BOT_TOKEN', '8228096941:AAGNYLcAwuX9Xvuj6PdKuv6Kvy-qNfPZFmo')
-MINIAPP_URL = os.getenv('MINIAPP_URL', 'https://t.me/yafscoin_bot/start')
+# Load file .env
+load_dotenv()
+
+# Ambil variables
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+MINIAPP_URL = os.getenv('MINIAPP_URL')
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler untuk command /start"""
+    # Debug: cek URL yang kebaca
+    print(f"DEBUG - URL yang dipakai: {MINIAPP_URL}")
     
-    # Buat keyboard dengan tombol Web App
-    keyboard = [
-        [InlineKeyboardButton(
+    if not MINIAPP_URL or MINIAPP_URL == "https://your-miniapp-url.com":
+        await update.message.reply_text("❌ MINIAPP_URL belum diset di file .env!")
+        return
+    
+    # Buat tombol
+    keyboard = [[
+        InlineKeyboardButton(
             text="🎮 START", 
             web_app=WebAppInfo(url=MINIAPP_URL)
-        )]
-    ]
+        )
+    ]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Kirim pesan dengan tombol
-    welcome_text = "🎯 you're among the top DPS farmers — don't lose it!\n\nPress button below to start"
-    
     await update.message.reply_text(
-        welcome_text,
+        "🎯 Press button below to start",
         reply_markup=reply_markup
     )
 
 def main():
-    """Fungsi utama untuk menjalankan bot"""
-    
-    # Cek apakah token sudah diset
-    if BOT_TOKEN == 'YOUR_BOT_TOKEN_HERE':
-        print("❌ Error: BOT_TOKEN belum diset!")
+    if not BOT_TOKEN:
+        print("❌ BOT_TOKEN belum diset!")
         return
     
-    # Buat aplikasi bot
-    application = Application.builder().token(BOT_TOKEN).build()
+    print(f"✅ Bot token: {BOT_TOKEN[:10]}...")
+    print(f"✅ Miniapp URL: {MINIAPP_URL}")
     
-    # Tambahkan handler
+    application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     
-    # Jalankan bot
     print("✅ Bot is running...")
     application.run_polling()
 
