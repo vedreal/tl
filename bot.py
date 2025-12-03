@@ -28,7 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await update.message.reply_text(
-        "Hi.. Welcome back 👋🏻\n Earn $YAFS every day easily now!",
+        "Hi.. Welcome 👋🏻\nEarn $YAFS every day easily now! 🎉",
         reply_markup=reply_markup
     )
 
