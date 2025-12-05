@@ -2,21 +2,21 @@ import os
 import json
 from dotenv import load_dotenv
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-# Load file .env
+# Load .env file
 load_dotenv()
 
-# Ambil variables
+# Get variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 MINIAPP_URL = os.getenv('MINIAPP_URL')
-ADMIN_ID = os.getenv('ADMIN_ID')  # Tambahkan ini di .env
+ADMIN_ID = os.getenv('ADMIN_ID')
 
-# File untuk simpan user IDs
+# File to save user IDs
 USERS_FILE = 'users.json'
 
 def load_users():
-    """Load daftar user dari file"""
+    """Load user list from file"""
     try:
         with open(USERS_FILE, 'r') as f:
             return json.load(f)
@@ -24,7 +24,7 @@ def load_users():
         return []
 
 def save_user(user_id):
-    """Simpan user ID baru"""
+    """Save new user ID"""
     users = load_users()
     if user_id not in users:
         users.append(user_id)
@@ -35,17 +35,17 @@ def save_user(user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # Simpan user ID
+    # Save user ID
     save_user(user_id)
     
-    # Debug: cek URL yang kebaca
-    print(f"DEBUG - URL yang dipakai: {MINIAPP_URL}")
+    # Debug: check URL
+    print(f"DEBUG - URL used: {MINIAPP_URL}")
     
     if not MINIAPP_URL or MINIAPP_URL == "https://your-miniapp-url.com":
-        await update.message.reply_text("❌ MINIAPP_URL belum diset di file .env!")
+        await update.message.reply_text("❌ MINIAPP_URL not set in .env file!")
         return
     
-    # Buat tombol
+    # Create button
     keyboard = [[
         InlineKeyboardButton(
             text="COLLECT WOOT", 
@@ -60,15 +60,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Command untuk broadcast pesan ke semua user (admin only)"""
+    """Command to broadcast message with button to all users (admin only)"""
     user_id = update.effective_user.id
     
-    # Cek apakah user adalah admin
-    if ADMIN_ID and str(user_id) != ADMIN_ID:
-        await update.message.reply_text("❌ You do not have access to broadcast!")
+    # Check if user is admin (ignore if not)
+    if not ADMIN_ID or str(user_id) != ADMIN_ID:
         return
     
-    # Cek apakah ada pesan yang mau di-broadcast
+    # Check if there's a message to broadcast
     if not context.args:
         await update.message.reply_text(
             "📢 How to use:\n/broadcast <your message>\n\n"
@@ -76,43 +75,55 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # Gabungkan semua argumen jadi satu pesan
+    # Combine all arguments into one message
     message = ' '.join(context.args)
     
-    # Load semua user
+    # Load all users
     users = load_users()
     
     if not users:
-        await update.message.reply_text("❌ There are no registered users yet!")
+        await update.message.reply_text("❌ No registered users yet!")
         return
     
-    # Kirim ke semua user
+    # Create button
+    keyboard = [[
+        InlineKeyboardButton(
+            text="COLLECT WOOT", 
+            web_app=WebAppInfo(url=MINIAPP_URL)
+        )
+    ]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    # Send to all users
     success = 0
     failed = 0
     
     await update.message.reply_text(f"📤 Sending broadcast to {len(users)} users...")
     
-    for user_id in users:
+    for uid in users:
         try:
-            await context.bot.send_message(chat_id=user_id, text=message)
+            await context.bot.send_message(
+                chat_id=uid, 
+                text=message,
+                reply_markup=reply_markup
+            )
             success += 1
         except Exception as e:
-            print(f"❌ Failed sending to {user_id}: {e}")
+            print(f"❌ Failed sending to {uid}: {e}")
             failed += 1
     
     await update.message.reply_text(
-        f"✅ Broadcast done!\n\n"
+        f"✅ Broadcast complete!\n\n"
         f"✅ Success: {success}\n"
         f"❌ Failed: {failed}"
     )
 
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Command to check the number of users"""
+    """Command to check number of users (admin only)"""
     user_id = update.effective_user.id
     
-    # Cek apakah user adalah admin
-    if ADMIN_ID and str(user_id) != ADMIN_ID:
-        await update.message.reply_text("❌ You don't have access to stats!")
+    # Check if user is admin (ignore if not)
+    if not ADMIN_ID or str(user_id) != ADMIN_ID:
         return
     
     users = load_users()
@@ -120,7 +131,7 @@ async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not BOT_TOKEN:
-        print("❌ BOT_TOKEN not set yet!")
+        print("❌ BOT_TOKEN not set!")
         return
     
     print(f"✅ Bot token: {BOT_TOKEN[:10]}...")
